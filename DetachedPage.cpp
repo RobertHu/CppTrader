@@ -58,7 +58,7 @@ void DetachedPage::loadSettings()
 	});
 }
 
-QString DetachedPage::getSelfAndChildrenObjectName()
+QJsonObject* DetachedPage::getSelfAndChildrenObjectName()
 {
 	return _PageWidget->getSelfAndChildrenObjectNameByDetachedPath(objectName());
 }

@@ -10,6 +10,10 @@
 #include <vector>
 #include "MaxSuffixHelper.h"
 #include "LayoutLineParser.h"
+#include <qjsonobject.h>
+#include <qjsonvalue.h>
+#include <qjsonarray.h>
+#include <memory>
 
 
 PageWidget::PageWidget(int suffixIndex,const QString& titile,QWidget *parent):QMainWindow(parent),
@@ -31,6 +35,30 @@ PageWidget::PageWidget(const std::string& line, QWidget *parent):QMainWindow(par
 		_detachedObjectName = QString::fromStdString(parameter[3]);
 	}
 	setObjectName(objectName);
+}
+
+PageWidget::PageWidget(const QJsonObject& jsonObj,QWidget *parent ):QMainWindow(parent)
+{
+	init();
+	QString objectName = jsonObj["objectName"].toString();
+	QString title = jsonObj["title"].toString();
+	bool isDetached = jsonObj["isDetached"].toBool();
+	QString detachedObjectName = jsonObj["detachedObjectName"].toString();
+	setObjectName(objectName);
+	_title=title;
+	_isDetached = isDetached;
+	_detachedObjectName=detachedObjectName;
+
+	QJsonArray children= jsonObj["children"].toArray();
+	if(children.size()==0) return;
+	for(auto begin=children.begin(), end= children.end();begin!=end;++begin)
+	{
+		QJsonObject child = begin.operator*().toObject();
+		QString childObjectName= child["objectName"].toString();
+		QString childTitle=child["title"].toString();
+		auto dockWidget = DockWidgetProducer::Default.createWidgetWithObjectName(childTitle,this,childObjectName.toStdString());
+		addChild(dockWidget);
+	}
 }
 
 void PageWidget::init()
@@ -102,34 +130,33 @@ void PageWidget::saveSettings()
 }
 
 
-QString PageWidget::getSelfAndChildrenObjectName()
+QJsonObject* PageWidget::getSelfAndChildrenObjectName()
 {
 	return getSelfAndChildrenObjectNameCommon(false,tr(""));
 }
 
-QString PageWidget::getSelfAndChildrenObjectNameByDetachedPath(QString& objectName)
+QJsonObject* PageWidget::getSelfAndChildrenObjectNameByDetachedPath(QString& objectName)
  {
 	 return getSelfAndChildrenObjectNameCommon(true,objectName);
  }
 
-QString PageWidget::getSelfAndChildrenObjectNameCommon(bool isDetached,QString& detachedObjectName)
+QJsonObject* PageWidget::getSelfAndChildrenObjectNameCommon(bool isDetached,QString& detachedObjectName)
  {
-	QString result("");
-	QString tabPageObjectName = objectName();
-	result += tr("%1_%2").arg(tabPageObjectName).arg(_title);
-	if(isDetached)
-	{
-		result += tr("_1_%2").arg(detachedObjectName);
-	}
-	else{
-		result += tr("_0");
-	}
+	 QJsonObject* jsonObj = new QJsonObject;
+	jsonObj->insert("objectName",objectName());
+	jsonObj->insert("title",_title);
+	jsonObj->insert("isDetached",isDetached);
+	jsonObj->insert("detachedObjectName",detachedObjectName);
+	QJsonArray jsonArray;
 	QList<QDockWidget*> dockChildren = findChildren<QDockWidget*>();
 	for(int i=0;i<dockChildren.size();i++)
 	{
 		auto dockWidget= dockChildren.at(i);
-		result += "|";
-		result += tr("%1_%2").arg(dockWidget->objectName()).arg(dockWidget->windowTitle());
+		QJsonObject widgetObject;
+		widgetObject.insert("objectName",dockWidget->objectName());
+		widgetObject.insert("title",dockWidget->windowTitle());
+		jsonArray.append(widgetObject);
 	}
-	return result;
+	jsonObj->insert("children",jsonArray);
+	return jsonObj;
  }

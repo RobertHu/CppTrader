@@ -3,6 +3,7 @@
 #include <qdialog.h>
 #include <memory>
 #include "WidgetBox.h"
+#include <memory>
 class QToolBar;
 class QWidget;
 class PageWidget;
@@ -21,7 +22,7 @@ public:
 	PageWidget* getPageWidget() const { return _PageWidget;}
 	void saveSettings();
 	void loadSettings();
-	QString getSelfAndChildrenObjectName();
+	QJsonObject* getSelfAndChildrenObjectName();
 protected:
   void closeEvent(QCloseEvent *event);
 private:
