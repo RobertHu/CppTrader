@@ -1,0 +1,5 @@
+enum DetachAttachState
+{
+	Attached,
+	Detached
+};
